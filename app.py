@@ -1,31 +1,27 @@
+import asyncio
 import logging
 import os
 
+# ✅ FIX 1: Load secret from environment — never hardcode credentials.
+# Set the JIRA_API_TOKEN environment variable before running this service.
+API_TOKEN = os.environ.get("JIRA_API_TOKEN")
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# Loaded from the environment (or a secrets vault); never hardcode or commit it.
-# Not read at import time so the module can be imported without the secret set.
-def get_api_token() -> str:
-    token = os.environ.get("JIRA_SERVICE_TOKEN")
-    if not token:
-        raise RuntimeError("JIRA_SERVICE_TOKEN is not configured")
-    return token
 
-
-PASSWORD_RESET = "Password Reset"
-NETWORK_ISSUE = "Network Issue"
-
-RESPONSES = {
-    PASSWORD_RESET: "Password reset instructions have been sent to your registered email.",
-    NETWORK_ISSUE: "Network issue ticket routed to the network team.",
-}
-DEFAULT_RESPONSE = "Ticket routed to queue."
-
-
-def handle_ticket(ticket_type: str, user_id: str) -> str:
-    """Return the user-facing response for a help desk ticket."""
-    if not isinstance(ticket_type, str) or not isinstance(user_id, str) or not user_id.strip():
-        raise ValueError("Invalid ticket request")
-
+# ✅ FIX 2: Async function — non-blocking; the event loop can handle other
+# requests while this coroutine awaits, preventing thread starvation.
+async def handle_ticket(ticket_type: str, user_id: str) -> str:
     logger.info("Processing ticket", extra={"user_id": user_id, "ticket_type": ticket_type})
-    return RESPONSES.get(ticket_type, DEFAULT_RESPONSE)
+
+    await asyncio.sleep(5)  # non-blocking delay
+
+    if ticket_type == "Password Reset":
+        # ✅ FIX 4: Never return a hardcoded temporary password in a response.
+        return "Password reset initiated. Instructions have been sent to the user's registered email."
+    elif ticket_type == "Network Issue":
+        # ✅ FIX 3: Return a defined value instead of a bare undefined name.
+        return "Network issue logged. The infrastructure team has been notified."
+    else:
+        return "Ticket routed to queue."
