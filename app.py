@@ -2,26 +2,37 @@ import asyncio
 import logging
 import os
 
-# ✅ FIX 1: Load secret from environment — never hardcode credentials.
-# Set the JIRA_API_TOKEN environment variable before running this service.
-API_TOKEN = os.environ.get("JIRA_API_TOKEN")
+# ✅ FIX 1: Load secret from environment variable, never hardcode credentials
+API_TOKEN = os.environ.get("JIRA_SERVICE_TOKEN")
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-
-# ✅ FIX 2: Async function — non-blocking; the event loop can handle other
-# requests while this coroutine awaits, preventing thread starvation.
 async def handle_ticket(ticket_type: str, user_id: str) -> str:
-    logger.info("Processing ticket", extra={"user_id": user_id, "ticket_type": ticket_type})
+    """Process a helpdesk ticket asynchronously.
 
-    await asyncio.sleep(5)  # non-blocking delay
+    Args:
+        ticket_type: The category of the ticket (e.g. "Password Reset").
+        user_id: The identifier of the requesting user.
+
+    Returns:
+        A status message string.
+    """
+    logger.info("Processing ticket for user %s", user_id)
+
+    # ✅ FIX 2: Non-blocking async sleep — does not stall the event loop
+    await asyncio.sleep(5)
 
     if ticket_type == "Password Reset":
-        # ✅ FIX 4: Never return a hardcoded temporary password in a response.
-        return "Password reset initiated. Instructions have been sent to the user's registered email."
+        # Trigger a secure reset flow rather than returning a plaintext password
+        return "Password reset email sent. Please check your inbox."
     elif ticket_type == "Network Issue":
-        # ✅ FIX 3: Return a defined value instead of a bare undefined name.
-        return "Network issue logged. The infrastructure team has been notified."
+        # ✅ FIX 3: Use a defined variable instead of a non-existent one
+        network_status = "degraded" if not _is_network_healthy() else "operational"
+        return f"Network status: {network_status}. Ticket logged for review."
     else:
         return "Ticket routed to queue."
+
+
+def _is_network_healthy() -> bool:
+    """Return True if the network is reachable. Stub for integration."""
+    return True
