@@ -1,31 +1,30 @@
-import os
-import asyncio
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
-# ✅ FIX 1: Load secret from environment variable — never hardcode credentials
-API_TOKEN = os.environ.get("JIRA_API_TOKEN")
+PASSWORD_RESET = "Password Reset"
+NETWORK_ISSUE = "Network Issue"
 
-async def handle_ticket(ticket_type: str, user_id: str) -> str:
-    """Process a helpdesk ticket asynchronously.
 
-    Args:
-        ticket_type: Category of the ticket (e.g. "Password Reset").
-        user_id: Identifier of the requesting user.
+def get_api_token() -> str:
+    """Read the Jira service token from the environment (never hardcode secrets)."""
+    token = os.environ.get("JIRA_SERVICE_TOKEN")
+    if not token:
+        raise RuntimeError("JIRA_SERVICE_TOKEN environment variable is not set")
+    return token
 
-    Returns:
-        A string describing the outcome.
-    """
-    logger.info("Processing ticket for user %s", user_id)
 
-    # ✅ FIX 2: Non-blocking async sleep — frees the event loop while waiting
-    await asyncio.sleep(5)
+def handle_ticket(ticket_type: str, user_id: str) -> str:
+    """Route a helpdesk ticket and return a user-facing status message."""
+    if not isinstance(ticket_type, str) or not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("ticket_type and user_id must be non-empty strings")
 
-    if ticket_type == "Password Reset":
-        return "Password has been reset. A temporary password has been sent to your registered email."
-    elif ticket_type == "Network Issue":
-        # ✅ FIX 3: Return a real value instead of an undefined variable
-        return "Network issue logged. Our team will investigate and contact you shortly."
-    else:
-        return "Ticket routed to queue."
+    logger.info("Processing ticket", extra={"ticket_type": ticket_type, "user_id": user_id})
+
+    if ticket_type == PASSWORD_RESET:
+        # Never return or log a plaintext password; send a one-time reset link instead.
+        return "A password reset link has been sent to your registered email."
+    if ticket_type == NETWORK_ISSUE:
+        return "Network issue logged. A network engineer will contact you shortly."
+    return "Ticket routed to queue."
