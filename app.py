@@ -17,7 +17,7 @@ def get_api_token() -> str:
 
 def handle_ticket(ticket_type: str, user_id: str) -> str:
     """Route a helpdesk ticket and return a user-facing status message."""
-    if not isinstance(ticket_type, str) or not isinstance(user_id, str) or not user_id.strip():
+    if not all(isinstance(v, str) and v.strip() for v in (ticket_type, user_id)):
         raise ValueError("ticket_type and user_id must be non-empty strings")
 
     logger.info("Processing ticket", extra={"ticket_type": ticket_type, "user_id": user_id})
