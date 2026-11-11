@@ -1,53 +1,29 @@
 import asyncio
 import logging
 import os
-import secrets
-from enum import StrEnum
 
-# Configure logger
 logger = logging.getLogger(__name__)
 
-# ✅ FIX 1: Retrieve credentials securely from environment variables
-API_TOKEN = os.getenv("JIRA_API_TOKEN")
+# Loaded from the environment (never hardcode secrets). Set JIRA_SERVICE_TOKEN
+# via your shell, a secrets manager, or an untracked .env file.
+API_TOKEN = os.environ.get("JIRA_SERVICE_TOKEN")
 
-
-class TicketType(StrEnum):
-    PASSWORD_RESET = "Password Reset"
-    NETWORK_ISSUE = "Network Issue"
-
-
-def generate_temp_password(length: int = 12) -> str:
-    """Generate a cryptographically secure temporary password."""
-    return secrets.token_urlsafe(length)
-
-
-def get_network_status() -> str:
-    """Fetch current network health status."""
-    return "All network systems are operational. Issue ticket created."
+PASSWORD_RESET = "Password Reset"
+NETWORK_ISSUE = "Network Issue"
 
 
 async def handle_ticket(ticket_type: str, user_id: str) -> str:
-    """
-    Process a support ticket asynchronously without blocking the event loop.
+    """Process a helpdesk ticket and return a user-facing status message."""
+    logger.info("Processing ticket", extra={"user_id": user_id, "ticket_type": ticket_type})
 
-    :param ticket_type: The category of the support ticket.
-    :param user_id: Identifier for the user submitting the ticket.
-    :return: A status message with the outcome of ticket processing.
-    """
-    if not ticket_type or not user_id:
-        raise ValueError("Both 'ticket_type' and 'user_id' are required.")
+    # Non-blocking simulated work: yields to the event loop instead of
+    # freezing the worker for 5 seconds on every request.
+    await asyncio.sleep(5)
 
-    logger.info("Processing ticket for user: %s, type: %s", user_id, ticket_type)
-
-    # ✅ FIX 2: Non-blocking asynchronous delay (replaces time.sleep)
-    await asyncio.sleep(0.1)
-
-    # ✅ FIX 3: Clean branching and resolved variable reference
-    match ticket_type:
-        case TicketType.PASSWORD_RESET:
-            temp_password = generate_temp_password()
-            return f"Password has been reset. Temporary credentials: {temp_password}"
-        case TicketType.NETWORK_ISSUE:
-            return get_network_status()
-        case _:
-            return "Ticket routed to queue."
+    if ticket_type == PASSWORD_RESET:
+        # Never return or log a plaintext password. Deliver a single-use reset
+        # link out-of-band (e.g. email) instead.
+        return "A password reset link has been sent to your registered email."
+    if ticket_type == NETWORK_ISSUE:
+        return "Network issue logged. Our team is investigating."
+    return "Ticket routed to queue."
